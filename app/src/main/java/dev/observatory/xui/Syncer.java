@@ -31,7 +31,9 @@ public final class Syncer {
             JSONArray old=Store.cached(context,panel.id);
             JSONArray current=ObservatoryApi.fetch(panel.url,Store.token(context,panel.id));
             Store.updateCache(context,panel.id,current);
+            ObservatoryHistory.recordSnapshot(context,panel.id,current);
             if(Store.notifications(context)) transitions(context,panel,old,current);
+            ObservatoryHistory.refreshSelected(context,panel,current,Store.token(context,panel.id));
         }catch(Exception e){
             observationError=e.getMessage()==null?e.getClass().getSimpleName():e.getMessage();
             Store.updateError(context,panel.id,observationError);

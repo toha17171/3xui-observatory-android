@@ -3,6 +3,7 @@ package dev.observatory.xui;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.Context;
+import android.os.Bundle;
 import android.content.Intent;
 
 /** Compact widget receiver, also handles refresh clicks for either widget size. */
@@ -11,6 +12,12 @@ public class ObservatoryWidget extends AppWidgetProvider {
     @Override public void onUpdate(Context c,AppWidgetManager m,int[] ids){
         WidgetRenderer.updateAll(c);
         RefreshJob.schedule(c);
+    }
+    @Override public void onAppWidgetOptionsChanged(Context c,AppWidgetManager mgr,
+                                                        int id,Bundle options) {
+        super.onAppWidgetOptionsChanged(c,mgr,id,options);
+        // A resized compact widget upgrades/downgrades its layout immediately.
+        WidgetRenderer.update(c,id);
     }
     @Override public void onReceive(Context c,Intent intent){
         super.onReceive(c,intent);

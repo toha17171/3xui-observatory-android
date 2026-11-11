@@ -81,10 +81,12 @@ public final class DashboardStore {
     }
     public static void removeWidget(Context c,int widgetId){
         prefs(c).edit().remove("widget_panel_"+widgetId).remove("widget_ids_"+widgetId).apply();
+        ObservatorySettings.removeWidget(c,widgetId);
     }
     public static void removePanel(Context c,String id){
         prefs(c).edit().remove("inbounds_"+id).remove("history_"+id)
           .remove("inbound_error_"+id).remove("selection_"+id).apply();
+        ObservatorySettings.removePanel(c,id);
     }
     private static Set<String> decode(String s){
         Set<String> result=new HashSet<>();

@@ -1,11 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <style name="WidgetInboundRow">
-    <item name="android:layout_width">match_parent</item>
-    <item name="android:layout_height">22dp</item>
-    <item name="android:textColor">#FAFAFA</item>
-    <item name="android:textSize">12sp</item>
-    <item name="android:singleLine">true</item>
-    <item name="android:ellipsize">end</item>
-    <item name="android:gravity">center_vertical</item>
-  </style>
+    <style name="ObservatoryWidgetRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">23dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:textColor">#F4F6F8</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+    <style name="WidgetInboundRow" parent="ObservatoryWidgetRow"/>
 </resources>

@@ -132,19 +132,54 @@ public final class MainActivity extends Activity {
                 if(!isFinishing()){if(e!=null)Toast.makeText(this,e,Toast.LENGTH_LONG).show();render();}
             });});
         });
-        LinearLayout nodes=card();title(nodes,"Обсерватория");
-        if(arr.isEmpty())helper(nodes,"Нет outbound. Проверьте, включены ли Observatory и metrics в Xray.");
-        Collections.sort(arr,(a,b)->{
-            if(a.optBoolean("alive")!=b.optBoolean("alive"))return a.optBoolean("alive")?1:-1;
-            return a.optString("tag").compareToIgnoreCase(b.optString("tag"));
-        });
-        for(JSONObject node:arr){
-            LinearLayout r=row();r.setPadding(0,d(9),0,d(9));
+        LinearLayout nodes=card();title(nodes,"Обсерватория · Outbound");
+        List<JSONObject> visible=ObservatorySettings.filtered(data,
+                ObservatorySettings.forPanel(this,panel.id));
+        if(visible.isEmpty()){
+            helper(nodes,"Нет выбранных outbound. Обновите данные или проверьте фильтр в настройках.");
+        }
+        int healthy=0;
+        for(JSONObject o:visible)if(o.optBoolean("alive"))healthy++;
+        if(!visible.isEmpty()){
+            TextView count=label(healthy+" / "+visible.size()+" активны",14,
+                healthy==visible.size()?Color.rgb(82,196,26):Color.rgb(250,173,20),true);
+            nodes.addView(count);gap(nodes,10);
+        }
+        for(JSONObject node:visible){
+            LinearLayout r=row();r.setPadding(0,d(6),0,d(6));
             boolean alive=node.optBoolean("alive");
-            TextView tag=label((alive?"●  ":"●  ")+node.optString("tag","?"),15,alive?text:Color.rgb(226,93,93),true);
+            TextView tag=label("●  "+node.optString("tag","?"),14,
+                alive?text:Color.rgb(255,100,105),true);
             r.addView(tag,new LinearLayout.LayoutParams(0,-2,1));
-            TextView latency=label(alive?node.optLong("delay")+" мс":"DOWN",14,alive?accent:Color.rgb(226,93,93),true);
+            TextView latency=label(alive?node.optLong("delay")+" мс":"DOWN",13,
+                alive?accent:Color.rgb(255,100,105),true);
             r.addView(latency);nodes.addView(r,width());
+        }
+        if(!visible.isEmpty()){
+            gap(nodes,9);
+            helper(nodes,"ИСТОРИЯ ЗАДЕРЖКИ · API Xray Observatory");
+            final List<String> names=new ArrayList<>();
+            for(JSONObject o:visible)names.add(o.optString("tag"));
+            Spinner metric=new Spinner(this);
+            metric.setAdapter(new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_dropdown_item,names));
+            nodes.addView(metric,width());
+            ImageView history=new ImageView(this);
+            history.setScaleType(ImageView.ScaleType.FIT_XY);
+            LinearLayout.LayoutParams params=width();
+            params.height=d(148);
+            nodes.addView(history,params);
+            metric.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
+                @Override public void onItemSelected(AdapterView<?> parent,View view,int position,long id){
+                    if(position<names.size() && !isFinishing())
+                        history.setImageBitmap(ObservatoryChart.draw(MainActivity.this,
+                            panel.id,names.get(position),0,640,215));
+                }
+                @Override public void onNothingSelected(AdapterView<?> parent){}
+            });
+            history.setImageBitmap(ObservatoryChart.draw(this,panel.id,names.get(0),0,640,215));
+            gap(nodes,4);
+            helper(nodes,"Выбор отображаемых outbound и интервал графика — в настройках.");
         }
         showInboundOverview(panel);
         gap(content,3);helper(content,"Фоновое обновление: каждые "+Store.interval(this)+" мин (приблизительно). Нажатие на виджет открывает приложение.");
@@ -261,6 +296,56 @@ public final class MainActivity extends Activity {
                 }).show());
         }
         if(selected!=null){
+            LinearLayout obsFilter=card();
+            title(obsFilter,"Observatory · Выбор метрик");
+            helper(obsFilter,"Выбери outbound для главного экрана. У каждого виджета — свои настройки.");
+            gap(obsFilter,9);
+            JSONArray availableObs=Store.cached(this,selected.id);
+            Set<String> savedTags=ObservatorySettings.forPanel(this,selected.id);
+            List<CheckBox> tags=new ArrayList<>();
+            for(int i=0;i<availableObs.length();i++){
+                JSONObject entry=availableObs.optJSONObject(i);
+                if(entry==null)continue;
+                String tag=entry.optString("tag","");
+                if(tag.isEmpty())continue;
+                CheckBox cb=new CheckBox(this);
+                cb.setTag(tag);
+                cb.setText((entry.optBoolean("alive")?"●  ":"○  ")+tag);
+                cb.setTextColor(text);
+                cb.setChecked(savedTags.isEmpty()||savedTags.contains(tag));
+                obsFilter.addView(cb);tags.add(cb);
+            }
+            if(tags.isEmpty())helper(obsFilter,"Список пока пуст. Нажмите «Обновить» на главном экране.");
+            gap(obsFilter,8);
+            helper(obsFilter,"АГРЕГАЦИЯ ИСТОРИИ");
+            Spinner period=new Spinner(this);
+            String[] options={"30 секунд","2 минуты","5 минут"};
+            period.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,options));
+            int currentBucket=ObservatorySettings.bucket(this,selected.id);
+            period.setSelection(currentBucket==30?0:currentBucket==300?2:1);
+            obsFilter.addView(period,width());
+            Button applyObs=button("Сохранить выбор Observatory");
+            obsFilter.addView(applyObs);
+            applyObs.setOnClickListener(v->{
+                Set<String> saved=new HashSet<>();
+                for(CheckBox item:tags)if(item.isChecked())saved.add((String)item.getTag());
+                if(!tags.isEmpty()&&saved.isEmpty()){
+                    Toast.makeText(this,"Выберите хотя бы один outbound",Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                ObservatorySettings.savePanel(this,selected.id,saved);
+                int bucket=period.getSelectedItemPosition()==0?30:
+                      period.getSelectedItemPosition()==2?300:120;
+                ObservatorySettings.bucket(this,selected.id,bucket);
+                ObservatoryWidget.updateAll(this);
+                Toast.makeText(this,"Настройки Observatory сохранены",Toast.LENGTH_SHORT).show();
+                Store.Panel reload=selected;
+                io.execute(()->{
+                    Syncer.refreshOne(getApplicationContext(),reload);
+                    runOnUiThread(()->{if(!isFinishing())render();});
+                });
+            });
+
             LinearLayout filter=card();
             title(filter,"Фильтр inbound");
             helper(filter,"Выбери inbound для главного экрана. У каждого виджета свой независимый выбор.");

@@ -2,10 +2,13 @@ package dev.observatory.xui;
 
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
+import android.appwidget.AppWidgetProviderInfo;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
+import android.os.Bundle;
+import android.text.SpannableString;
+import android.text.style.ForegroundColorSpan;
 import android.view.View;
 import android.widget.RemoteViews;
 import org.json.JSONArray;
@@ -16,102 +19,177 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-/** Renders two widget sizes from the same read-only local cache. */
+/** Adaptive home-screen dashboard; every instance retains its own settings. */
 public final class WidgetRenderer {
     private WidgetRenderer(){}
-    private static final int TEXT=Color.rgb(231,235,243);
-    private static final int GREEN=Color.rgb(82,196,26);
-    private static final int RED=Color.rgb(255,77,79);
-    private static final int MUTED=Color.rgb(157,165,178);
-    public static void updateAll(Context c){
-        AppWidgetManager mgr=AppWidgetManager.getInstance(c);
-        int[] small=mgr.getAppWidgetIds(new ComponentName(c,ObservatoryWidget.class));
-        int[] large=mgr.getAppWidgetIds(new ComponentName(c,ExpandedWidget.class));
-        for(int id:small)update(c,id,false);
-        for(int id:large)update(c,id,true);
-    }
-    public static void update(Context c,int id,boolean large){
-        AppWidgetManager mgr=AppWidgetManager.getInstance(c);
-        RemoteViews v=new RemoteViews(c.getPackageName(),
-              large?R.layout.widget_expanded:R.layout.widget_compact);
-        setupActions(c,v,id,large);
-        String pid=DashboardStore.panelForWidget(c,id);
-        Store.Panel panel=DashboardStore.getPanel(c,pid);
-        String title=panel==null?"3x-ui":panel.name;
-        v.setTextViewText(large?R.id.w_large_title:R.id.w_compact_title,title);
-        if(panel==null){
-            v.setTextViewText(large?R.id.w_large_summary:R.id.w_compact_primary,"Настройте сервер");
-            mgr.updateAppWidget(id,v);return;
-        }
-        Set<String> selected=DashboardStore.selectionForWidget(c,id,panel.id);
-        List<JSONObject> rows=DashboardStore.visibleInbounds(c,panel.id,selected);
-        int enabled=0;
-        long up=0,down=0;
-        for(JSONObject r:rows){
-            if(r.optBoolean("enable"))enabled++;
-            up+=Math.max(0,r.optLong("up"));down+=Math.max(0,r.optLong("down"));
-        }
-        String counts=enabled+"/"+rows.size()+" включены";
-        String usage="↓ "+DashboardStore.formatBytes(down)+"   ↑ "+DashboardStore.formatBytes(up);
-        String updated=Store.lastOk(c,panel.id)==0?"Нет обновлений":
-            new SimpleDateFormat("dd.MM HH:mm",Locale.getDefault()).format(new Date(Store.lastOk(c,panel.id)));
-        String issue=DashboardStore.inboundError(c,panel.id);
-        if(!issue.isEmpty())updated+=" · inbound недоступны";
-        if(large){
-            v.setTextViewText(R.id.w_large_summary,"INBOUND · "+counts);
-            v.setTextViewText(R.id.w_large_totals,usage);
-            v.setTextViewText(R.id.w_large_footer,"Обновлено "+updated);
-            v.setImageViewBitmap(R.id.w_large_chart,TrafficChart.draw(c,panel.id,selected,640,175));
-            int[] labels={R.id.w_large_line1,R.id.w_large_line2,R.id.w_large_line3};
-            for(int i=0;i<labels.length;i++){
-                if(i<rows.size()){
-                    JSONObject r=rows.get(i);
-                    String desc=(r.optBoolean("enable")?"●  ":"○  ")+display(r)+" · "+r.optInt("port");
-                    v.setTextViewText(labels[i],desc);
-                    v.setTextColor(labels[i],r.optBoolean("enable")?TEXT:RED);
-                    v.setViewVisibility(labels[i],View.VISIBLE);
-                }else v.setViewVisibility(labels[i],View.GONE);
+    private static final int WHITE=0xFFF4F6FB;
+    private static final int GREEN=0xFF52C41A;
+    private static final int RED=0xFFFF686B;
+    private static final int BLUE=0xFF57A6FF;
+    private static final int MUTED=0xFFA4AAB6;
+
+    /** Redraw compact and large providers, including widgets resized to another layout. */
+    public static void updateAll(Context c) {
+        AppWidgetManager manager=AppWidgetManager.getInstance(c);
+        for(Class<?> provider:new Class<?>[]{ObservatoryWidget.class,ExpandedWidget.class}) {
+            int[] ids=manager.getAppWidgetIds(new ComponentName(c,provider));
+            for(int id:ids) {
+                try {update(c,id);} catch(RuntimeException ignored) {/* next widget should render */}
             }
-            if(rows.size()>3)v.setTextViewText(R.id.w_large_more,"+ ещё "+(rows.size()-3));
-            else v.setTextViewText(R.id.w_large_more,"");
-            JSONArray ob=Store.cached(c,panel.id);
-            int alive=0;long delay=0;
-            for(int i=0;i<ob.length();i++){
-                JSONObject r=ob.optJSONObject(i);
-                if(r!=null&&r.optBoolean("alive")){alive++;delay+=r.optLong("delay");}
-            }
-            v.setTextViewText(R.id.w_large_outbound,ob.length()==0?"OUTBOUND · пока нет данных":
-                  "OUTBOUND · "+alive+"/"+ob.length()+" онлайн"+
-                  (alive>0?" · "+(delay/alive)+" мс средняя":""));
-        }else{
-            v.setTextViewText(R.id.w_compact_primary,"INBOUND  "+counts);
-            v.setTextViewText(R.id.w_compact_second,rows.size()==0?
-                "Нажмите ↗ для выбора":usage);
-            v.setTextViewText(R.id.w_compact_footer,updated);
         }
-        mgr.updateAppWidget(id,v);
     }
-    private static String display(JSONObject inbound){
-        String remark=inbound.optString("remark").trim();
-        return remark.isEmpty()?inbound.optString("protocol","inbound"):remark;
+    /** Old calls with an explicit size remain source compatible. */
+    public static void update(Context c,int id,boolean ignored) {update(c,id);}
+
+    public static void update(Context c,int id) {
+        AppWidgetManager manager=AppWidgetManager.getInstance(c);
+        AppWidgetProviderInfo info=manager.getAppWidgetInfo(id);
+        boolean preferredLarge=info!=null && info.provider!=null &&
+                   info.provider.getClassName().endsWith(".ExpandedWidget");
+        Bundle options=manager.getAppWidgetOptions(id);
+        int minH=options==null?0:options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,0);
+        // A 2x2 widget may be resized to 4x4 on the launcher: upgrade its layout.
+        boolean large=preferredLarge || minH>=185;
+        RemoteViews views=new RemoteViews(c.getPackageName(),
+                large?R.layout.widget_expanded:R.layout.widget_compact);
+        actions(c,views,id,large);
+        String panelId=DashboardStore.panelForWidget(c,id);
+        Store.Panel panel=DashboardStore.getPanel(c,panelId);
+        views.setTextViewText(large?R.id.w_large_title:R.id.w_compact_title,
+                panel==null?"3x-ui Observatory":panel.name);
+        if(panel==null) {
+            views.setTextViewText(large?R.id.w_large_summary:R.id.w_compact_primary,
+                    "Нужно добавить сервер");
+            manager.updateAppWidget(id,views);return;
+        }
+        JSONArray all=Store.cached(c,panel.id);
+        Set<String> selected=ObservatorySettings.forWidget(c,id,panel.id);
+        List<JSONObject> obs=ObservatorySettings.filtered(all,selected);
+        int alive=0;
+        for(JSONObject r:obs)if(r.optBoolean("alive"))alive++;
+        String summary=obs.isEmpty()?"Нет данных Observatory":
+                "OBSERVATORY  "+alive+"/"+obs.size()+"  •  "+(obs.size()-alive)+" DOWN";
+        List<JSONObject> in=DashboardStore.visibleInbounds(c,panel.id,
+                DashboardStore.selectionForWidget(c,id,panel.id));
+        long down=0,up=0;int inboundAlive=0;
+        for(JSONObject r:in) {
+            if(r.optBoolean("enable"))inboundAlive++;
+            down+=Math.max(0,r.optLong("down"));
+            up+=Math.max(0,r.optLong("up"));
+        }
+        String traffic="IN  "+inboundAlive+"/"+in.size()+"   ↓ "+DashboardStore.formatBytes(down)+
+             "   ↑ "+DashboardStore.formatBytes(up);
+        long update=Store.lastOk(c,panel.id);
+        String time=update==0?"Обновление не выполнялось":
+            new SimpleDateFormat("HH:mm",Locale.getDefault()).format(new Date(update));
+        String stale=update>0&&System.currentTimeMillis()-update>
+             Math.max(35,Store.interval(c)*3)*60000L?" · данные устарели":"";
+        if(!large) {
+            views.setTextViewText(R.id.w_compact_primary,summary);
+            int[] ids={R.id.w_compact_line1,R.id.w_compact_line2};
+            for(int i=0;i<ids.length;i++) {
+                if(i<obs.size()) {
+                    JSONObject r=obs.get(i);
+                    views.setTextViewText(ids[i],styled(r,20,
+                            ObservatorySettings.showProbe(c,id)));
+                    views.setViewVisibility(ids[i],View.VISIBLE);
+                }else{
+                    views.setTextViewText(ids[i],i==0?"Выберите outbound в ⚙":"");
+                    views.setViewVisibility(ids[i],i==0?View.VISIBLE:View.GONE);
+                }
+            }
+            views.setTextViewText(R.id.w_compact_footer,
+                ObservatorySettings.showTraffic(c,id) && !in.isEmpty()
+                     ?traffic:("Обновлено "+time+stale));
+        } else {
+            views.setTextViewText(R.id.w_large_summary,summary);
+            int[] ids={R.id.w_large_line1,R.id.w_large_line2,R.id.w_large_line3};
+            for(int i=0;i<ids.length;i++) {
+                if(i<obs.size()) {
+                    views.setTextViewText(ids[i],styled(obs.get(i),27,
+                          ObservatorySettings.showProbe(c,id)));
+                    views.setViewVisibility(ids[i],View.VISIBLE);
+                }else{
+                    views.setTextViewText(ids[i],i==0?"Нет выбранных outbound":"");
+                    views.setViewVisibility(ids[i],i==0?View.VISIBLE:View.GONE);
+                }
+            }
+            String focus=ObservatorySettings.focus(c,id);
+            if(focus.isEmpty() && !obs.isEmpty())focus=obs.get(0).optString("tag");
+            boolean found=false;
+            for(JSONObject r:obs)if(focus.equals(r.optString("tag")))found=true;
+            if(!found && !obs.isEmpty())focus=obs.get(0).optString("tag");
+            int mode=ObservatorySettings.chart(c,id);
+            int bucket=ObservatorySettings.bucket(c,panel.id);
+            String label=mode==2?"ТРАФИК INBOUND • ↓ / ↑":
+              mode==1?"ДОСТУПНОСТЬ · "+shorten(focus,25):
+                      "ЗАДЕРЖКА · "+shorten(focus,25);
+            views.setTextViewText(R.id.w_large_chart_title,label+"  · "+bucket+"с");
+            views.setImageViewBitmap(R.id.w_large_chart,
+                ObservatoryChart.draw(c,panel.id,focus,mode,
+                    DashboardStore.selectionForWidget(c,id,panel.id),460,150));
+            boolean showTraffic=ObservatorySettings.showTraffic(c,id);
+            views.setViewVisibility(R.id.w_large_totals,showTraffic?View.VISIBLE:View.GONE);
+            if(showTraffic)views.setTextViewText(R.id.w_large_totals,traffic);
+            views.setTextViewText(R.id.w_large_footer,"Последнее обновление "+time+stale+
+                 (obs.size()>3?"  ·  ещё "+(obs.size()-3)+" → ⚙":""));
+        }
+        try {
+            manager.updateAppWidget(id,views);
+        } catch(RuntimeException e) {
+            // Some launchers reject large RemoteViews bitmaps. Retry with a small view.
+            if(large){
+                RemoteViews safe=new RemoteViews(c.getPackageName(),R.layout.widget_compact);
+                actions(c,safe,id,false);
+                safe.setTextViewText(R.id.w_compact_title,panel.name);
+                safe.setTextViewText(R.id.w_compact_primary,summary);
+                safe.setTextViewText(R.id.w_compact_line1,
+                    obs.isEmpty()?"Нет данных":styled(obs.get(0),20,false));
+                safe.setViewVisibility(R.id.w_compact_line2,View.GONE);
+                safe.setTextViewText(R.id.w_compact_footer,"Обновлено "+time);
+                manager.updateAppWidget(id,safe);
+            }else throw e;
+        }
     }
-    private static void setupActions(Context c,RemoteViews v,int id,boolean large){
+    private static String shorten(String source,int max) {
+        if(source==null)return "";
+        return source.length()<=max?source:source.substring(0,max-1)+"…";
+    }
+    private static CharSequence styled(JSONObject node,int max,boolean time) {
+        boolean alive=node.optBoolean("alive");
+        String tag=shorten(node.optString("tag","Outbound"),max);
+        String suffix=alive?node.optLong("delay")+" мс":"DOWN";
+        if(time && node.optLong("lastTryTime")>1000000000L){
+            suffix+=" · "+new SimpleDateFormat("HH:mm",Locale.getDefault())
+                    .format(new Date(node.optLong("lastTryTime")*1000L));
+        }
+        String s="● "+tag+"    "+suffix;
+        SpannableString value=new SpannableString(s);
+        value.setSpan(new ForegroundColorSpan(alive?GREEN:RED),0,1,33);
+        int start=s.indexOf(suffix);
+        if(start>=0)value.setSpan(new ForegroundColorSpan(alive?BLUE:RED),
+                        start,s.length(),33);
+        return value;
+    }
+    private static void actions(Context c,RemoteViews views,int id,boolean large) {
         int root=large?R.id.w_large_root:R.id.w_compact_root;
-        int reload=large?R.id.w_large_refresh:R.id.w_compact_refresh;
+        int refresh=large?R.id.w_large_refresh:R.id.w_compact_refresh;
         int configure=large?R.id.w_large_settings:R.id.w_compact_settings;
-        Intent launch=new Intent(c,MainActivity.class).setAction("dev.observatory.xui.OPEN_WIDGET");
-        PendingIntent open=PendingIntent.getActivity(c,10000+id,launch,
-             PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-        v.setOnClickPendingIntent(root,open);
-        Intent refresh=new Intent(c,ObservatoryWidget.class).setAction(ObservatoryWidget.ACTION_REFRESH);
-        PendingIntent pi=PendingIntent.getBroadcast(c,20000+id,refresh,
-             PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-        v.setOnClickPendingIntent(reload,pi);
-        Intent conf=new Intent(c,WidgetConfigureActivity.class)
+        Intent open=new Intent(c,MainActivity.class)
+              .setAction("dev.observatory.xui.OPEN_WIDGET");
+        PendingIntent openPi=PendingIntent.getActivity(c,10000+id,open,
+              PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        views.setOnClickPendingIntent(root,openPi);
+        Intent reload=new Intent(c,ObservatoryWidget.class)
+             .setAction(ObservatoryWidget.ACTION_REFRESH);
+        PendingIntent reloadPi=PendingIntent.getBroadcast(c,20000+id,reload,
+              PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        views.setOnClickPendingIntent(refresh,reloadPi);
+        Intent config=new Intent(c,WidgetConfigureActivity.class)
              .setAction("dev.observatory.xui.CONFIGURE");
-        conf.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,id);
-        PendingIntent config=PendingIntent.getActivity(c,30000+id,conf,
-             PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-        v.setOnClickPendingIntent(configure,config);
+        config.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,id);
+        PendingIntent configPi=PendingIntent.getActivity(c,30000+id,config,
+              PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        views.setOnClickPendingIntent(configure,configPi);
     }
 }
