@@ -24,7 +24,13 @@ jobs:
       - name: Install Android SDK packages
         run: |
           echo "ANDROID_HOME=${ANDROID_HOME}"
-          sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+          SDK_MANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          if [ -z "$SDK_MANAGER" ]; then
+            echo "::error::Android SDK cmdline-tools not found under $ANDROID_HOME"
+            exit 1
+          fi
+          echo "Using SDK manager: $SDK_MANAGER"
+          "$SDK_MANAGER" --sdk_root="$ANDROID_HOME" --install "platforms;android-35" "build-tools;35.0.0"
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
