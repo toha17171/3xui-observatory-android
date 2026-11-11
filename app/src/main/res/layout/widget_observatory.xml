@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:padding="14dp" android:background="@drawable/widget_bg" android:orientation="vertical">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:id="@+id/widget_title" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="3x-ui Observatory" android:textSize="16sp" android:textStyle="bold" android:textColor="#F5F7FC" android:singleLine="true" android:ellipsize="end"/>
+        <TextView android:id="@+id/widget_refresh" android:layout_width="40dp" android:layout_height="40dp" android:gravity="center" android:text="↻" android:textColor="#78DFC0" android:textSize="26sp" android:contentDescription="Обновить"/>
+    </LinearLayout>
+    <TextView android:id="@+id/widget_summary" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Нет данных" android:textColor="#AABBD1" android:textSize="12sp" android:paddingBottom="5dp"/>
+    <LinearLayout android:id="@+id/widget_row1" style="@style/WidgetRow"><TextView android:id="@+id/widget_tag1" style="@style/WidgetTag"/><TextView android:id="@+id/widget_delay1" style="@style/WidgetDelay"/></LinearLayout>
+    <LinearLayout android:id="@+id/widget_row2" style="@style/WidgetRow"><TextView android:id="@+id/widget_tag2" style="@style/WidgetTag"/><TextView android:id="@+id/widget_delay2" style="@style/WidgetDelay"/></LinearLayout>
+    <LinearLayout android:id="@+id/widget_row3" style="@style/WidgetRow"><TextView android:id="@+id/widget_tag3" style="@style/WidgetTag"/><TextView android:id="@+id/widget_delay3" style="@style/WidgetDelay"/></LinearLayout>
+    <LinearLayout android:id="@+id/widget_row4" style="@style/WidgetRow"><TextView android:id="@+id/widget_tag4" style="@style/WidgetTag"/><TextView android:id="@+id/widget_delay4" style="@style/WidgetDelay"/></LinearLayout>
+    <TextView android:id="@+id/widget_timestamp" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Ожидание обновления" android:textColor="#788BA3" android:textSize="11sp" android:paddingTop="7dp" />
+</LinearLayout>
