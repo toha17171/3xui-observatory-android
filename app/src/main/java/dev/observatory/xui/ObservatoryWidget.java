@@ -21,14 +21,12 @@ public class ObservatoryWidget extends AppWidgetProvider {
     }
     @Override public void onReceive(Context c,Intent intent){
         super.onReceive(c,intent);
-        if(ACTION_REFRESH.equals(intent.getAction())){
-            PendingResult pending=goAsync();
-            new Thread(()->{
-                try{ Syncer.refreshAll(c.getApplicationContext()); }
-                finally{pending.finish();}
-            },"3xui-widget-refresh").start();
+        if(ACTION_REFRESH.equals(intent.getAction())) {
+            // Avoid holding a broadcast PendingResult for multiple HTTP history requests.
+            RefreshJob.requestNow(c.getApplicationContext());
         }
     }
+
     @Override public void onDeleted(Context c,int[] ids){
         for(int id:ids)DashboardStore.removeWidget(c,id);
     }

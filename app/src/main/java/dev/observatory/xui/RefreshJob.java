@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 
 public class RefreshJob extends JobService {
     private static final int ID=32511;
+    private static final int MANUAL_ID=32512;
     private final ExecutorService pool=Executors.newSingleThreadExecutor();
     @Override public boolean onStartJob(JobParameters params) {
         pool.execute(()->{try{Syncer.refreshAll(getApplicationContext());}finally{jobFinished(params,false);}});
@@ -18,6 +19,15 @@ public class RefreshJob extends JobService {
     }
     @Override public boolean onStopJob(JobParameters params){return true;}
     @Override public void onDestroy(){pool.shutdownNow();super.onDestroy();}
+    /** Schedule a durable one-off refresh; widget broadcasts must finish quickly. */
+    public static void requestNow(Context context) {
+        JobScheduler scheduler=(JobScheduler)context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+        if(scheduler==null)return;
+        JobInfo job=new JobInfo.Builder(MANUAL_ID,new ComponentName(context,RefreshJob.class))
+            .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+            .setOverrideDeadline(0L).build();
+        scheduler.schedule(job);
+    }
     public static void schedule(Context context) {
         JobScheduler scheduler=(JobScheduler)context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         scheduler.cancel(ID);
