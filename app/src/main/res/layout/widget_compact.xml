@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_compact_root"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:padding="12dp"
+    android:background="@drawable/widget_bg">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:id="@+id/w_compact_title" android:layout_width="0dp"
+            android:layout_weight="1" android:layout_height="wrap_content"
+            android:text="3x-ui" android:textStyle="bold" android:textSize="15sp"
+            android:textColor="#F5F5F6" android:singleLine="true" android:ellipsize="end"/>
+        <TextView android:id="@+id/w_compact_refresh" android:layout_width="32dp"
+            android:layout_height="32dp" android:gravity="center"
+            android:text="↻" android:textSize="24sp" android:textColor="#1677FF"
+            android:contentDescription="Обновить"/>
+        <TextView android:id="@+id/w_compact_settings" android:layout_width="28dp"
+            android:layout_height="32dp" android:gravity="center"
+            android:text="⚙" android:textSize="18sp" android:textColor="#A3A7B2"
+            android:contentDescription="Настроить виджет"/>
+    </LinearLayout>
+    <TextView android:id="@+id/w_compact_primary" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="INBOUND · —"
+        android:textSize="14sp" android:textStyle="bold" android:textColor="#F4F6FA"
+        android:paddingTop="5dp"/>
+    <TextView android:id="@+id/w_compact_second" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="↓ —    ↑ —"
+        android:textSize="12sp" android:textColor="#83C5FF" android:paddingTop="4dp"
+        android:singleLine="true" android:ellipsize="end"/>
+    <TextView android:id="@+id/w_compact_footer" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="Обновление"
+        android:textSize="10sp" android:textColor="#A3A7B2" android:paddingTop="6dp"/>
+</LinearLayout>

@@ -1,1 +1,1 @@
-<resources><string name="app_name">3x-ui Observatory</string></resources>
+<resources><string name="app_name">3x-ui Observatory</string><string name="widget_compact_desc">3x-ui · Компактный: статус и трафик inbound</string><string name="widget_expanded_desc">3x-ui · Расширенный: inbound, графики и Observatory</string></resources>

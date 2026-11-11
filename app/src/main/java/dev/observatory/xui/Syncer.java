@@ -24,20 +24,30 @@ public final class Syncer {
         for(Store.Panel panel:ps) refreshOne(context,panel);
         ObservatoryWidget.updateAll(context);
     }
+    /** Observatory and inbound endpoints refresh independently: either may fail without hiding the other. */
     public static String refreshOne(Context context, Store.Panel panel){
+        String observationError=null,inboundError=null;
         try {
             JSONArray old=Store.cached(context,panel.id);
             JSONArray current=ObservatoryApi.fetch(panel.url,Store.token(context,panel.id));
             Store.updateCache(context,panel.id,current);
             if(Store.notifications(context)) transitions(context,panel,old,current);
-            ObservatoryWidget.updateAll(context);
-            return null;
         }catch(Exception e){
-            String error=e.getMessage()==null?e.getClass().getSimpleName():e.getMessage();
-            Store.updateError(context,panel.id,error);
-            ObservatoryWidget.updateAll(context);
-            return error;
+            observationError=e.getMessage()==null?e.getClass().getSimpleName():e.getMessage();
+            Store.updateError(context,panel.id,observationError);
         }
+        try {
+            JSONArray current=InboundsApi.fetch(panel.url,Store.token(context,panel.id));
+            DashboardStore.updateInbounds(context,panel.id,current);
+        }catch(Exception e){
+            inboundError=e.getMessage()==null?e.getClass().getSimpleName():e.getMessage();
+            DashboardStore.inboundError(context,panel.id,inboundError);
+        }
+        ObservatoryWidget.updateAll(context);
+        if(observationError==null && inboundError==null)return null;
+        return (observationError==null?"":"Observatory: "+observationError)+
+               (observationError!=null&&inboundError!=null?" | ":"")+
+               (inboundError==null?"":"Inbounds: "+inboundError);
     }
     private static void transitions(Context c,Store.Panel panel,JSONArray old,JSONArray now){
         if (old.length()==0) return;

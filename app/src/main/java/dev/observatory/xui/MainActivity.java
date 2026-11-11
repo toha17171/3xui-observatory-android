@@ -16,6 +16,8 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.ImageView;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -28,6 +30,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -50,9 +54,9 @@ public final class MainActivity extends Activity {
     @Override public void onDestroy(){io.shutdownNow();super.onDestroy();}
     private void palette(){
         boolean dark=Store.dark(this);
-        bg=Color.parseColor(dark?"#0B1320":"#F5F7FA");surface=Color.parseColor(dark?"#152238":"#FFFFFF");
-        text=Color.parseColor(dark?"#F4F7FC":"#182A42");muted=Color.parseColor(dark?"#AAB8CA":"#617083");
-        accent=Color.parseColor("#159E78");border=Color.parseColor(dark?"#253A55":"#DEE5EF");
+        bg=Color.parseColor(dark?"#1A1B1F":"#E6E8EC");surface=Color.parseColor(dark?"#23252B":"#FFFFFF");
+        text=Color.parseColor(dark?"#F6F7FA":"#202329");muted=Color.parseColor(dark?"#A4A9B2":"#626A78");
+        accent=Color.parseColor("#1677FF");border=Color.parseColor(dark?"#383B43":"#D5D9DF");
     }
     private TextView label(String s,int sp,int color,boolean bold){
         TextView t=new TextView(this);t.setText(s);t.setTextSize(sp);t.setTextColor(color);
@@ -82,7 +86,7 @@ public final class MainActivity extends Activity {
         content=column();content.setPadding(d(18),d(22),d(18),d(28));scroll.addView(content);
         setContentView(scroll);
         content.addView(label("3x-ui Observatory",25,text,true));
-        helper(content,"Мониторинг outbound и задержек Xray");gap(content,14);
+        helper(content,"INBOUND / Трафик  •  OUTBOUND / Observatory");gap(content,14);
         LinearLayout tabs=row();content.addView(tabs,width());
         Button overview=button("Обзор");Button config=button("Настройки");
         tabs.addView(overview,new LinearLayout.LayoutParams(0,d(48),1));tabs.addView(config,new LinearLayout.LayoutParams(0,d(48),1));
@@ -142,8 +146,56 @@ public final class MainActivity extends Activity {
             TextView latency=label(alive?node.optLong("delay")+" мс":"DOWN",14,alive?accent:Color.rgb(226,93,93),true);
             r.addView(latency);nodes.addView(r,width());
         }
+        showInboundOverview(panel);
         gap(content,3);helper(content,"Фоновое обновление: каждые "+Store.interval(this)+" мин (приблизительно). Нажатие на виджет открывает приложение.");
     }
+    private void showInboundOverview(Store.Panel panel){
+        Set<String> selected=DashboardStore.selectedInbounds(this,panel.id);
+        List<JSONObject> incoming=DashboardStore.visibleInbounds(this,panel.id,selected);
+        LinearLayout c=card();
+        title(c,"Inbound · Трафик");
+        String error=DashboardStore.inboundError(this,panel.id);
+        if(!error.isEmpty()){
+            helper(c,"Не удалось загрузить inbound: "+error);gap(c,8);
+        }
+        if(incoming.isEmpty()){
+            helper(c,"Нет данных о входящих подключениях. Нажмите «Обновить» и проверьте доступ токена к inbound API.");
+            return;
+        }
+        long totalUp=0,totalDown=0;
+        int enabled=0;
+        for(JSONObject r:incoming){
+            if(r.optBoolean("enable"))enabled++;
+            totalUp+=r.optLong("up");
+            totalDown+=r.optLong("down");
+        }
+        helper(c,enabled+" из "+incoming.size()+" включены · счётчики с момента последнего сброса");
+        gap(c,5);
+        TextView total=label("↓ "+DashboardStore.formatBytes(totalDown)+"    ↑ "+DashboardStore.formatBytes(totalUp),
+            20,text,true);
+        c.addView(total);
+        gap(c,12);
+        c.addView(label("ДИНАМИКА ТРАФИКА  •  ↓ DOWNLOAD / ↑ UPLOAD",11,muted,true));
+        ImageView chart=new ImageView(this);
+        chart.setImageBitmap(TrafficChart.draw(this,panel.id,selected,640,210));
+        chart.setScaleType(ImageView.ScaleType.FIT_XY);
+        LinearLayout.LayoutParams chartParams=new LinearLayout.LayoutParams(-1,d(115));
+        chartParams.setMargins(0,d(5),0,d(8));
+        c.addView(chart,chartParams);
+        for(JSONObject in:incoming){
+            LinearLayout r=row();r.setPadding(0,d(7),0,d(7));
+            boolean active=in.optBoolean("enable");
+            String name=in.optString("remark").isEmpty()?
+               in.optString("protocol","inbound"):in.optString("remark");
+            TextView nameView=label((active?"● ":"○ ")+name+" : "+in.optInt("port"),13,
+                active?text:Color.rgb(255,77,79),true);
+            r.addView(nameView,new LinearLayout.LayoutParams(0,-2,1));
+            TextView bytes=label(DashboardStore.formatBytes(in.optLong("down"))+" ↓",12,muted,false);
+            r.addView(bytes);c.addView(r,width());
+        }
+        gap(c,5);helper(c,"Выбор отображаемых inbound доступен в настройках.");
+    }
+
     private void showSettings(){
         List<Store.Panel> panels=Store.panels(this);
         Store.Panel selected=Store.selected(this);
@@ -205,8 +257,47 @@ public final class MainActivity extends Activity {
             delete.setOnClickListener(v->new AlertDialog.Builder(this)
                 .setTitle("Удалить "+active.name+"?").setMessage("Настройки, токен и кеш этого сервера будут удалены.")
                 .setNegativeButton("Отмена",null).setPositiveButton("Удалить",(dialog,which)->{
-                    Store.removePanel(this,active.id);RefreshJob.schedule(this);ObservatoryWidget.updateAll(this);render();
+                    Store.removePanel(this,active.id);DashboardStore.removePanel(this,active.id);RefreshJob.schedule(this);ObservatoryWidget.updateAll(this);render();
                 }).show());
+        }
+        if(selected!=null){
+            LinearLayout filter=card();
+            title(filter,"Фильтр inbound");
+            helper(filter,"Выбери inbound для главного экрана. У каждого виджета свой независимый выбор.");
+            gap(filter,10);
+            JSONArray available=DashboardStore.inbounds(this,selected.id);
+            Set<String> currently=DashboardStore.selectedInbounds(this,selected.id);
+            List<CheckBox> toggles=new ArrayList<>();
+            for(int i=0;i<available.length();i++){
+                JSONObject inbound=available.optJSONObject(i);if(inbound==null)continue;
+                String iid=String.valueOf(inbound.optInt("id"));
+                CheckBox toggle=new CheckBox(this);
+                String display=inbound.optString("remark").isEmpty()?
+                   inbound.optString("protocol","inbound"):inbound.optString("remark");
+                toggle.setText(display+"  ·  "+inbound.optString("protocol")+" : "+inbound.optInt("port"));
+                toggle.setTag(iid);
+                toggle.setTextColor(text);
+                toggle.setChecked(currently.isEmpty()||currently.contains(iid));
+                filter.addView(toggle);
+                toggles.add(toggle);
+            }
+            if(toggles.isEmpty()){
+                helper(filter,"Список inbound пуст. Сначала нажмите «Обновить» на вкладке Обзор.");
+            }else{
+                Button apply=button("Применить выбор inbound");
+                filter.addView(apply);
+                apply.setOnClickListener(v->{
+                    Set<String> ids=new HashSet<>();
+                    for(CheckBox toggle:toggles)if(toggle.isChecked())ids.add((String)toggle.getTag());
+                    if(ids.isEmpty()){
+                        Toast.makeText(this,"Выберите хотя бы один inbound",Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    DashboardStore.selectInbounds(this,selected.id,ids);
+                    ObservatoryWidget.updateAll(this);
+                    Toast.makeText(this,"Фильтр сохранён",Toast.LENGTH_SHORT).show();
+                });
+            }
         }
         LinearLayout common=card();title(common,"Параметры приложения");
         common.addView(label("Интервал обновления",13,muted,true));
