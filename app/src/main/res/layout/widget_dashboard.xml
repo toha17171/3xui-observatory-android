@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One stable RemoteViews layout for both widget classes and all sizes.
+     Only visibility and text change during launcher resize. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_dashboard_root"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:paddingLeft="12dp"
+    android:paddingRight="12dp" android:paddingTop="9dp"
+    android:paddingBottom="8dp" android:background="@drawable/widget_bg">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="30dp"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:id="@+id/w_title" android:layout_width="0dp"
+            android:layout_weight="1" android:layout_height="wrap_content"
+            android:singleLine="true" android:ellipsize="end" android:text="3x-ui Observatory"
+            android:textStyle="bold" android:textColor="#F4F6FA" android:textSize="15sp"/>
+        <TextView android:id="@+id/w_updated" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="--:--"
+            android:gravity="center_vertical" android:textColor="#98A4B7"
+            android:textSize="10sp" android:paddingRight="5dp"/>
+        <TextView android:id="@+id/w_refresh" android:layout_width="32dp"
+            android:layout_height="30dp" android:gravity="center"
+            android:text="↻" android:textSize="22sp" android:textColor="#1677FF"
+            android:contentDescription="Обновить"/>
+        <TextView android:id="@+id/w_config" android:layout_width="28dp"
+            android:layout_height="30dp" android:gravity="center"
+            android:text="⚙" android:textSize="17sp" android:textColor="#A6ADBA"
+            android:contentDescription="Настроить виджет"/>
+    </LinearLayout>
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="23dp"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:id="@+id/w_status" android:layout_width="0dp"
+            android:layout_weight="1" android:layout_height="match_parent"
+            android:gravity="center_vertical" android:text="● OBSERVATORY"
+            android:textStyle="bold" android:textColor="#52C41A"
+            android:singleLine="true" android:textSize="12sp"/>
+        <TextView android:id="@+id/w_average" android:layout_width="wrap_content"
+            android:layout_height="match_parent" android:gravity="center_vertical|right"
+            android:text="AVG —" android:textStyle="bold" android:textColor="#65A6FF"
+            android:textSize="12sp" android:singleLine="true"/>
+    </LinearLayout>
+    <TextView android:id="@+id/w_stats" android:layout_width="match_parent"
+        android:layout_height="20dp" android:gravity="center_vertical"
+        android:text="MIN —  ·  MAX —  ·  DOWN —" android:textSize="10sp"
+        android:textColor="#A7B1C0" android:visibility="gone"
+        android:singleLine="true" android:ellipsize="end"/>
+    <LinearLayout android:id="@+id/w_node_row1" android:layout_width="match_parent"
+        android:layout_height="24dp" android:orientation="horizontal"
+        android:gravity="center_vertical" android:visibility="gone">
+        <TextView android:id="@+id/w_node_name1" android:layout_width="0dp"
+            android:layout_weight="1" android:layout_height="match_parent"
+            android:gravity="center_vertical" android:textSize="12sp"
+            android:textColor="#F0F3F8" android:singleLine="true"
+            android:ellipsize="end"/>
+        <TextView android:id="@+id/w_node_delay1" android:layout_width="wrap_content"
+            android:minWidth="56dp" android:layout_height="match_parent"
+            android:gravity="center_vertical|right" android:textSize="12sp"
+            android:textColor="#68A8FF" android:singleLine="true"/>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/w_node_row2" android:layout_width="match_parent"
+        android:layout_height="24dp" android:orientation="horizontal"
+        android:gravity="center_vertical" android:visibility="gone">
+        <TextView android:id="@+id/w_node_name2" android:layout_width="0dp"
+            android:layout_weight="1" android:layout_height="match_parent"
+            android:gravity="center_vertical" android:textSize="12sp"
+            android:textColor="#F0F3F8" android:singleLine="true"
+            android:ellipsize="end"/>
+        <TextView android:id="@+id/w_node_delay2" android:layout_width="wrap_content"
+            android:minWidth="56dp" android:layout_height="match_parent"
+            android:gravity="center_vertical|right" android:textSize="12sp"
+            android:textColor="#68A8FF" android:singleLine="true"/>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/w_node_row3" android:layout_width="match_parent"
+        android:layout_height="24dp" android:orientation="horizontal"
+        android:gravity="center_vertical" android:visibility="gone">
+        <TextView android:id="@+id/w_node_name3" android:layout_width="0dp"
+            android:layout_weight="1" android:layout_height="match_parent"
+            android:gravity="center_vertical" android:textSize="12sp"
+            android:textColor="#F0F3F8" android:singleLine="true"
+            android:ellipsize="end"/>
+        <TextView android:id="@+id/w_node_delay3" android:layout_width="wrap_content"
+            android:minWidth="56dp" android:layout_height="match_parent"
+            android:gravity="center_vertical|right" android:textSize="12sp"
+            android:textColor="#68A8FF" android:singleLine="true"/>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/w_node_row4" android:layout_width="match_parent"
+        android:layout_height="24dp" android:orientation="horizontal"
+        android:gravity="center_vertical" android:visibility="gone">
+        <TextView android:id="@+id/w_node_name4" android:layout_width="0dp"
+            android:layout_weight="1" android:layout_height="match_parent"
+            android:gravity="center_vertical" android:textSize="12sp"
+            android:textColor="#F0F3F8" android:singleLine="true"
+            android:ellipsize="end"/>
+        <TextView android:id="@+id/w_node_delay4" android:layout_width="wrap_content"
+            android:minWidth="56dp" android:layout_height="match_parent"
+            android:gravity="center_vertical|right" android:textSize="12sp"
+            android:textColor="#68A8FF" android:singleLine="true"/>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/w_node_row5" android:layout_width="match_parent"
+        android:layout_height="24dp" android:orientation="horizontal"
+        android:gravity="center_vertical" android:visibility="gone">
+        <TextView android:id="@+id/w_node_name5" android:layout_width="0dp"
+            android:layout_weight="1" android:layout_height="match_parent"
+            android:gravity="center_vertical" android:textSize="12sp"
+            android:textColor="#F0F3F8" android:singleLine="true"
+            android:ellipsize="end"/>
+        <TextView android:id="@+id/w_node_delay5" android:layout_width="wrap_content"
+            android:minWidth="56dp" android:layout_height="match_parent"
+            android:gravity="center_vertical|right" android:textSize="12sp"
+            android:textColor="#68A8FF" android:singleLine="true"/>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/w_node_row6" android:layout_width="match_parent"
+        android:layout_height="24dp" android:orientation="horizontal"
+        android:gravity="center_vertical" android:visibility="gone">
+        <TextView android:id="@+id/w_node_name6" android:layout_width="0dp"
+            android:layout_weight="1" android:layout_height="match_parent"
+            android:gravity="center_vertical" android:textSize="12sp"
+            android:textColor="#F0F3F8" android:singleLine="true"
+            android:ellipsize="end"/>
+        <TextView android:id="@+id/w_node_delay6" android:layout_width="wrap_content"
+            android:minWidth="56dp" android:layout_height="match_parent"
+            android:gravity="center_vertical|right" android:textSize="12sp"
+            android:textColor="#68A8FF" android:singleLine="true"/>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/w_node_row7" android:layout_width="match_parent"
+        android:layout_height="24dp" android:orientation="horizontal"
+        android:gravity="center_vertical" android:visibility="gone">
+        <TextView android:id="@+id/w_node_name7" android:layout_width="0dp"
+            android:layout_weight="1" android:layout_height="match_parent"
+            android:gravity="center_vertical" android:textSize="12sp"
+            android:textColor="#F0F3F8" android:singleLine="true"
+            android:ellipsize="end"/>
+        <TextView android:id="@+id/w_node_delay7" android:layout_width="wrap_content"
+            android:minWidth="56dp" android:layout_height="match_parent"
+            android:gravity="center_vertical|right" android:textSize="12sp"
+            android:textColor="#68A8FF" android:singleLine="true"/>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/w_node_row8" android:layout_width="match_parent"
+        android:layout_height="24dp" android:orientation="horizontal"
+        android:gravity="center_vertical" android:visibility="gone">
+        <TextView android:id="@+id/w_node_name8" android:layout_width="0dp"
+            android:layout_weight="1" android:layout_height="match_parent"
+            android:gravity="center_vertical" android:textSize="12sp"
+            android:textColor="#F0F3F8" android:singleLine="true"
+            android:ellipsize="end"/>
+        <TextView android:id="@+id/w_node_delay8" android:layout_width="wrap_content"
+            android:minWidth="56dp" android:layout_height="match_parent"
+            android:gravity="center_vertical|right" android:textSize="12sp"
+            android:textColor="#68A8FF" android:singleLine="true"/>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/w_chart_section"
+        android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:minHeight="42dp"
+        android:orientation="vertical" android:visibility="gone">
+        <TextView android:id="@+id/w_chart_label" android:layout_width="match_parent"
+            android:layout_height="18dp" android:text="ЗАДЕРЖКА" android:textSize="10sp"
+            android:textStyle="bold" android:textColor="#A4AEC1"
+            android:gravity="center_vertical" android:singleLine="true"
+            android:ellipsize="end"/>
+        <ImageView android:id="@+id/w_chart" android:layout_width="match_parent"
+            android:layout_height="0dp" android:layout_weight="1"
+            android:scaleType="fitXY"
+            android:contentDescription="История выбранной метрики"/>
+    </LinearLayout>
+    <TextView android:id="@+id/w_traffic" android:layout_width="match_parent"
+        android:layout_height="22dp" android:gravity="center_vertical"
+        android:text="INBOUND —" android:textColor="#C6D0E0"
+        android:textSize="11sp" android:singleLine="true"
+        android:ellipsize="end" android:visibility="gone"/>
+    <TextView android:id="@+id/w_footer" android:layout_width="match_parent"
+        android:layout_height="17dp" android:gravity="center_vertical"
+        android:text="Обновите данные" android:textSize="10sp"
+        android:textColor="#8493A9" android:singleLine="true"
+        android:ellipsize="end"/>
+</LinearLayout>

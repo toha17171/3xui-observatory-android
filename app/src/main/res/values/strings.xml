@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">3x-ui Observatory</string>
-    <string name="widget_compact_desc">2×2: выбранные outbound, задержка и статус</string>
-    <string name="widget_expanded_desc">4×4: Observatory, история задержки и трафик</string>
+    <string name="widget_compact_desc">Адаптивный 3x-ui: 1–8 outbound, задержки и статистика</string>
+    <string name="widget_expanded_desc">Дашборд 3x-ui: Observatory, график задержки и трафик</string>
 </resources>

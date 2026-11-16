@@ -39,21 +39,21 @@ jobs:
       - name: Prepare release APK
         if: github.event_name != 'pull_request'
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk 3xui-observatory-v1.2.0-debug.apk
-          sha256sum 3xui-observatory-v1.2.0-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk 3xui-observatory-v1.3.0-debug.apk
+          sha256sum 3xui-observatory-v1.3.0-debug.apk
       - name: Publish versioned APK to GitHub Releases
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG=v1.2.0
-          FILE=3xui-observatory-v1.2.0-debug.apk
+          TAG=v1.3.0
+          FILE=3xui-observatory-v1.3.0-debug.apk
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$FILE" --clobber
           else
             gh release create "$TAG" "$FILE" --target "$GITHUB_SHA" \
-              --title "3x-ui Observatory Android v1.2.0" \
-              --notes "Android 8.0+ debug APK. Compact and expanded widgets, per-widget Observatory filters, and history graphs."
+              --title "3x-ui Observatory Android v1.3.0" \
+              --notes "Android 8.0+ debug APK. Single responsive widget layout, up to eight outbounds, latency statistics, and chart."
           fi
       - name: Upload APK
         continue-on-error: true
